@@ -4,8 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Impostor.Api.Events;
-using Impostor.Api.Events.Player;
+using Impostor.Api.Events.Managers;
 using Impostor.Api.Events.Meeting;
+using Impostor.Api.Events.Player;
 using Impostor.Api.Games;
 using Impostor.Api.Innersloth;
 using Impostor.Api.Net;
@@ -54,7 +55,7 @@ namespace MeuModBR
             {"verde","#117F2D"},{"rosa","#ED54BA"},{"laranja","#EF7D0E"},{"roxo","#6B2FBB"},
             {"ciano","#38FEDC"},{"lima","#50EF39"},{"branco","#D6E0F0"},{"preto","#3F474E"}
         };
-        private readonly string[] _paleta = { "#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF" };
+        private readonly List<string> _paleta = new() { "#FF0000", "#FFFF00", "#00FF00", "#00FFFF", "#0000FF", "#FF00FF" };
 
         [EventListener]
         public async ValueTask OnChat(IPlayerChatEvent e)
@@ -64,8 +65,8 @@ namespace MeuModBR
             e.IsCancelled = true;
             var p = e.ClientPlayer;
             var parts = msg.Split(' ', 2);
-            var cmd = parts[0].ToLower();
-            var arg = parts.Length > 1 ? parts[1].Trim() : "";
+            var cmd = parts.ElementAtOrDefault(0)?.ToLower() ?? "";
+            var arg = parts.ElementAtOrDefault(1)?.Trim() ?? "";
 
             if (e.Game.GameState != GameStates.NotStarted) return;
 
@@ -118,9 +119,9 @@ namespace MeuModBR
                 _roles[imps[i].Client.Id] = r;
                 await imps[i].Character!.SendChatToPlayerAsync($"SEU CARGO: {r.ToUpper()}");
             }
-            if (crew.Count > 0) { _roles[crew[0].Client.Id] = "Xerife"; await crew[0].Character!.SendChatToPlayerAsync("SEU CARGO: XERIFE"); }
-            if (crew.Count > 1) { _roles[crew[1].Client.Id] = "Medico"; await crew[1].Character!.SendChatToPlayerAsync("SEU CARGO: MEDICO"); }
-            if (crew.Count > 2) { _roles[crew[2].Client.Id] = "Prefeito"; await crew[2].Character!.SendChatToPlayerAsync("SEU CARGO: PREFEITO"); }
+            if (crew.Count > 0) { _roles[crew.First().Client.Id] = "Xerife"; await crew.First().Character!.SendChatToPlayerAsync("SEU CARGO: XERIFE"); }
+            if (crew.Count > 1) { _roles[crew.Skip(1).First().Client.Id] = "Medico"; await crew.Skip(1).First().Character!.SendChatToPlayerAsync("SEU CARGO: MEDICO"); }
+            if (crew.Count > 2) { _roles[crew.Skip(2).First().Client.Id] = "Prefeito"; await crew.Skip(2).First().Character!.SendChatToPlayerAsync("SEU CARGO: PREFEITO"); }
         }
 
         [EventListener]
@@ -172,7 +173,7 @@ namespace MeuModBR
             _ = Task.Run(async () => {
                 int idx = 0;
                 while (!tok.IsCancellationRequested && g.GameState == GameStates.NotStarted) {
-                    string hex = _paleta[idx++ % _paleta.Length];
+                    string hex = _paleta[idx++ % _paleta.Count];
                     foreach (var p in g.Players)
                         if (_rgb.Contains(p.Client.Id) && p.Character != null)
                             await p.Character.SetNameAsync($"<color={hex}>{CleanName(p.Character.PlayerInfo.PlayerName)}</color>");
