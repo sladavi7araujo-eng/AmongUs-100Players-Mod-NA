@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Impostor.Api.Events;
 using Impostor.Api.Events.Managers;
-using Impostor.Api.Events.Meeting;
 using Impostor.Api.Events.Player;
 using Impostor.Api.Games;
 using Impostor.Api.Innersloth;
@@ -46,7 +45,7 @@ namespace MeuModBR
     {
         private readonly Dictionary<int, string> _roles = new();
         private readonly HashSet<int> _rgb = new();
-        private readonly HashSet<int> _shield = new();
+        private readonly HashSet<uint> _shield = new();
         private CancellationTokenSource? _cts;
 
         private readonly Dictionary<string, string> _cores = new(StringComparer.OrdinalIgnoreCase)
@@ -129,7 +128,7 @@ namespace MeuModBR
         {
             if (e.Victim == null) return;
             _roles.TryGetValue(e.ClientPlayer.Client.Id, out var role);
-            if (_shield.Remove(e.Victim.Client.Id)) return;
+            if (_shield.Remove(e.Victim.NetId)) return;
 
             if (role == "Xerife" && !e.Victim.PlayerInfo.IsImpostor)
                 await e.ClientPlayer.Character!.MurderPlayerAsync(e.ClientPlayer.Character);
@@ -161,7 +160,7 @@ namespace MeuModBR
             if (_roles.TryGetValue(e.ClientPlayer.Client.Id, out var r) && r == "Medico")
             {
                 var near = e.Game.Players.FirstOrDefault(x => x.Client.Id != e.ClientPlayer.Client.Id && !x.Character!.PlayerInfo.IsDead);
-                if (near != null) _shield.Add(near.Client.Id);
+                if (near?.Character != null) _shield.Add(near.Character.NetId);
             }
         }
 
